@@ -1,16 +1,25 @@
-// var startX = 0,
+// var EVENT = {
+//   INIT: 'init',
+//   BEFORE_STAGE_CHANGED: 'beforeStageChanged',
+//   STAGE_CHANGED: 'stageChanged',
+// }
+
 var startY = 0,
-  // lastLeft = 50,
-  lastTop = -550 / 2;
+  lastY = 0;
+var targetComponent = null;
+var config = { px2rpx: 2, stages: [], currentStage: -1, nextStage: -1 };
+var onTransition = false; // onTransition 过程中不允许 touchstart
 
 function touchstart(event, ins) {
+  if (onTransition) return;
   var touch = event.touches[0] || event.changedTouches[0]
   startY = touch.pageY
+  console.log('touchstart currentStage', config.currentStage);
   ins.callMethod('poiInfoTouchStart', {
     target: event.target,
     changedTouches: event.changedTouches,
     complete: function(res) {
-      console.log('args', res)
+      console.log('poiInfoTouchStart complete args', res)
     }
   })
 }
@@ -18,12 +27,12 @@ function touchstart(event, ins) {
 function touchmove(event, ins) {
   var touch = event.touches[0] || event.changedTouches[0]
   var pageY = touch.pageY
-  var top = pageY - startY + lastTop
-  console.log('diff', pageY - startY)
-  startY = pageY
-  lastTop = top
+  var bottom = -(pageY - startY) + lastY
+  // console.log('diff', pageY - startY)
+
   ins.selectComponent('.stage-panel').setStyle({
-    transform: 'translateY(' + top + 'px);'
+    // transition: 'unset',
+    bottom: '' + bottom + 'px;'
   })
   // console.log('get data', JSON.stringify(ins.selectComponent('.movable')[0].getData()))
   // console.log('get data set', JSON.stringify(ins.selectComponent('.movable')[0].getDataset()))
@@ -32,19 +41,35 @@ function touchmove(event, ins) {
 
 function touchend(event, ins) {
   var touch = event.touches[0] || event.changedTouches[0]
-  // var pageX = touch.pageX
   var pageY = touch.pageY
-  // var left = pageX - startX + lastLeft
-  var top = pageY - startY + lastTop
-  // startX = pageX
-  startY = pageY
-  // lastLeft = left
-  lastTop = top
+  var bottom = -(pageY - startY) + lastY
+  var delta = pageY - startY;
+  // 默认不动
+  var nextStage = config.currentStage;
+  // 下
+  if (delta > 50) {
+    nextStage = (config.currentStage - 1 + config.stages.length) % config.stages.length;
+  }
+  // 上
+  else if (delta < -50) nextStage = (config.currentStage + 1) % config.stages.length;
+  lastY = config.stages[nextStage];
+  config.nextStage = nextStage;
+  console.log('delta', delta, config.currentStage, nextStage, config.stages[nextStage])
   // console.log('idff', pageX - context.startX, left, top)
-  ins.selectComponent('.stage-panel').setStyle({
+  targetComponent = ins.selectComponent('.stage-panel');
+  onTransition = true;
+  targetComponent.setStyle({
     // left: left + 'px',
-    transform: 'translateY(' + top + 'px);'
+    transition: 'bottom 1s ease 0s',
+    bottom: lastY
   })
+  // wx.setTimeout(function() {
+  //   stagePanel.setStyle({
+  //     // left: left + 'px',
+  //     transition: 'unset',
+  //   })
+  // }, 600);
+
   ins.callMethod('poiInfoTouchEnd', {
     target: event.target,
     changedTouches: event.changedTouches,
@@ -54,18 +79,59 @@ function touchend(event, ins) {
   })
 }
 
-function translateYChange(newValue, oldValue, ownerInstance, instance) {
-  console.log('prop observer', newValue, oldValue)
+function eventChange(dataEvent, oldDataEvent, ownerInstance, instance) {
+  console.log('eventChange observer', [dataEvent, oldDataEvent, ownerInstance, instance].map(function(e, i) { return i + ":" + JSON.stringify(e) }));
+  switch (dataEvent.type) {
+    case 'init':
+      config = {
+        px2rpx: dataEvent.px2rpx || 2,
+        stages: dataEvent.stages || [],
+        currentStage: dataEvent.currentStage || -1,
+        nextStage: -1,
+      };
+      updateStageToY();
+      console.log('init lastY', lastY)
+      // console.log(dataEvent.stages);
+      // console.log(dataEvent.currentStage);
+      break;
+    case 'beforeStageChanged':
+      config.nextStage = dataEvent.nextStage;
+      break;
+    case 'stageChanged':
+      // 基本不考虑外部触发，通过transitionend，自己捕获更新
+      config.currentStage = config.nextStage;
+      config.nextStage = 0;
+      updateStageToY();
+      break;
+    default:
+      console.log('未捕获事件');
+      break;
+  }
 }
 
-function transitionend(argument) {
-  console.log('transitionend', argument);
+function updateStageToY() {
+  if (config.currentStage < 0) return;
+  if (!config.stages || !config.stages.length) return;
+  lastY = parseInt(config.stages[config.currentStage]) / config.px2rpx;
+  console.log('updateStageToY', 'currentStage= ' + config.currentStage, 'lastY=' + lastY);
+}
+
+function transitionend(e) {
+  console.log('transitionend', JSON.stringify(e));
+  onTransition = false;
+  eventChange({ type: 'stageChanged' }, null, null, null);
+  // if (targetComponent) {
+  //   targetComponent.setStyle({
+  //     bottom: lastY,
+  //   })
+  //   targetComponent = null;
+  // }
 }
 
 module.exports = {
   touchstart: touchstart,
   touchmove: touchmove,
   touchend: touchend,
-  translateYChange: translateYChange,
+  eventChange: eventChange,
   transitionend: transitionend,
 }
