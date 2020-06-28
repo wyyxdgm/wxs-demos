@@ -1,6 +1,7 @@
 <!--pages/index/index.wxml-->
-<text>点击查看下面的DEMO：</text>
-<navigator style='display:block;line-height:40px;color:blue;' url='../movable/movable'>movable</navigator>
-<navigator style='display:block;line-height:40px;color:blue;' url='../sidebar/sidebar'>右滑显示左侧侧边栏</navigator>
-<navigator style='display:block;line-height:40px;color:blue;' url='../stick-top/stick-top'>滚动菜单栏贴顶</navigator>
-<navigator style='display:block;line-height:40px;color:blue;' url='../nearby/nearby'>跟随swiper的图片切换效果</navigator>
+<navigator class="navigator" url="../movable/movable">movable</navigator>
+<navigator class="navigator" url="../sidebar/sidebar">右滑显示左侧侧边栏</navigator>
+<navigator class="navigator" url="../stick-top/stick-top">滚动菜单栏贴顶</navigator>
+<navigator class="navigator" url="../nearby/nearby">跟随swiper的图片切换效果</navigator>
+<navigator class="navigator" url="../stage-animation/stage-animation">多阶段动画切换</navigator>
+<navigator class="navigator" url="../canvas-on-cover-view/canvas-on-cover-view">canvas on cover-view</navigator>

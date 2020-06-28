@@ -1,0 +1,71 @@
+// var startX = 0,
+var startY = 0,
+  // lastLeft = 50,
+  lastTop = -550 / 2;
+
+function touchstart(event, ins) {
+  var touch = event.touches[0] || event.changedTouches[0]
+  startY = touch.pageY
+  ins.callMethod('poiInfoTouchStart', {
+    target: event.target,
+    changedTouches: event.changedTouches,
+    complete: function(res) {
+      console.log('args', res)
+    }
+  })
+}
+
+function touchmove(event, ins) {
+  var touch = event.touches[0] || event.changedTouches[0]
+  var pageY = touch.pageY
+  var top = pageY - startY + lastTop
+  console.log('diff', pageY - startY)
+  startY = pageY
+  lastTop = top
+  ins.selectComponent('.stage-panel').setStyle({
+    transform: 'translateY(' + top + 'px);'
+  })
+  // console.log('get data', JSON.stringify(ins.selectComponent('.movable')[0].getData()))
+  // console.log('get data set', JSON.stringify(ins.selectComponent('.movable')[0].getDataset()))
+  // console.log('test select', ins.selectComponent('.movable')[0].selectComponent('.dd'))
+}
+
+function touchend(event, ins) {
+  var touch = event.touches[0] || event.changedTouches[0]
+  // var pageX = touch.pageX
+  var pageY = touch.pageY
+  // var left = pageX - startX + lastLeft
+  var top = pageY - startY + lastTop
+  // startX = pageX
+  startY = pageY
+  // lastLeft = left
+  lastTop = top
+  // console.log('idff', pageX - context.startX, left, top)
+  ins.selectComponent('.stage-panel').setStyle({
+    // left: left + 'px',
+    transform: 'translateY(' + top + 'px);'
+  })
+  ins.callMethod('poiInfoTouchEnd', {
+    target: event.target,
+    changedTouches: event.changedTouches,
+    complete: function(res) {
+      console.log('args', res);
+    }
+  })
+}
+
+function translateYChange(newValue, oldValue, ownerInstance, instance) {
+  console.log('prop observer', newValue, oldValue)
+}
+
+function transitionend(argument) {
+  console.log('transitionend', argument);
+}
+
+module.exports = {
+  touchstart: touchstart,
+  touchmove: touchmove,
+  touchend: touchend,
+  translateYChange: translateYChange,
+  transitionend: transitionend,
+}

@@ -1,0 +1,9 @@
+<!--pages/stage-animation/stage-animation.wxml-->
+<wxs module="test" src="./stage-animation.wxs"></wxs>
+<!-- <view wx:if="{{show}}" class="area"> -->
+<view class="stage-panel" data-index="1" data-obj="{{dataObj}}"  bindtouchstart="{{test.touchstart}}" bindtouchmove="{{test.touchmove}}" bindtouchend="{{test.touchend}}" animation="{{animation}}" transitionend="{{test.transitionend}}">
+  <view wx:for="{{[1,2,3,323,23,4,4,4,5,23,5,45,45]}}">{{item}}</view>
+</view>
+<!-- </view> -->
+<view bindtap="{{taptest}}">taptest</view>
+<view bindtap="{{animationToStage}}">animationToStage</view>

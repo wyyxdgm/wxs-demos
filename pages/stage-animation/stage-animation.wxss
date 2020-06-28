@@ -1,0 +1,13 @@
+.area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-panel {
+  position: absolute;
+  width: 750rpx;
+  height: 950rpx;
+  background: red;
+  bottom: -1050rpx;
+}

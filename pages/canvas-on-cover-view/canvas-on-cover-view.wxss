@@ -1,0 +1,35 @@
+.test-canvas-on-cover {
+  position: relative;
+  background: red;
+  width: 300rpx;
+  height: 300rpx;
+  color: blue;
+}
+
+.canvas-on-cover {
+  position: absolute;
+  top: 20rpx;
+  left: 20rpx;
+  width: 100rpx;
+  height: 100rpx;
+  /* background: blue; */
+  z-index: 3;
+}
+
+.canvas {
+  position: absolute;
+  top: 200rpx;
+  left: 200rpx;
+  width: 200rpx;
+  height: 200rpx;
+  z-index: 4;
+}
+
+.common-view {
+  position: absolute;
+  top: 250rpx;
+  left: 250rpx;
+  width: 200rpx;
+  height: 200rpx;
+  background: blue;
+}
