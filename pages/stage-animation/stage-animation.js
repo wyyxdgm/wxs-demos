@@ -33,6 +33,8 @@ Page({
       px2rpx: 750 / wx.getSystemInfoSync().windowWidth,
       stages: ['-1050rpx', '-200rpx', '0rpx'], // stage:0,1,2,...
       currentStage: 0,
+      selector: '.stage-panel',
+      limitMaxStage: true,
     },
   },
 
@@ -69,15 +71,13 @@ Page({
   },
   toStage(stage) {
     const bottom = POI_1_BOTTOM[stage];
-    const animation = wx.createAnimation({
-      duration: 600,
-      timingFunction: 'ease-in-out',
-    }).bottom(bottom).step();
     this.setData({
-      animation: animation.export(),
       event: {
-        type: EVENT.BEFORE_STAGE_CHANGED,
-        nextStage: stage
+        type: 'toStage',
+        nextStage: stage,
+        // bottom: bottom,
+        duration: '.6s',
+        timingFunction: 'ease-in-out',
       }
     });
   },

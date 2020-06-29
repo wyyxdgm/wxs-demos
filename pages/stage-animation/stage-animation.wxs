@@ -5,34 +5,44 @@
 // }
 
 var startY = 0,
-  lastY = 0;
+  lastBottom = 0;
 var targetComponent = null;
-var config = { px2rpx: 2, stages: [], currentStage: -1, nextStage: -1 };
-var onTransition = false; // onTransition 过程中不允许 touchstart
+var config = { px2rpx: 2, stages: [], currentStage: -1, nextStage: -1, selector: '', limitMaxStage: true, duration: '.6s', timingFunction: 'ease-in-out' };
+// var onTransition = false; // onTransition 过程中不允许 touchstart
+// var startedByTouch = false;
+var onTranend = function() {}
 
 function touchstart(event, ins) {
-  if (onTransition) return;
+  // if (onTransition) return;
+  // startedByTouch = true;
   var touch = event.touches[0] || event.changedTouches[0]
   startY = touch.pageY
-  console.log('touchstart currentStage', config.currentStage);
+  // console.log('touchstart currentStage', config.currentStage);
   ins.callMethod('poiInfoTouchStart', {
     target: event.target,
     changedTouches: event.changedTouches,
     complete: function(res) {
-      console.log('poiInfoTouchStart complete args', res)
+      // console.log('poiInfoTouchStart complete args', res)
     }
   })
 }
 
+function isLimitByMaxStage(bottom) {
+  // console.log('isLimitByMaxStage', config.limitMaxStage, bottom, '>', parseInt(config.stages[config.stages.length - 1]))
+  return config.limitMaxStage && bottom > parseInt(config.stages[config.stages.length - 1])
+}
+
 function touchmove(event, ins) {
+  // if (onTransition) return;
+  // if (!startedByTouch) return;
   var touch = event.touches[0] || event.changedTouches[0]
   var pageY = touch.pageY
-  var bottom = -(pageY - startY) + lastY
-  // console.log('diff', pageY - startY)
-
-  ins.selectComponent('.stage-panel').setStyle({
+  var delta = pageY - startY
+  var bottom = lastBottom - delta * config.px2rpx
+  if (isLimitByMaxStage(bottom)) return;
+  targetComponent.setStyle({
     // transition: 'unset',
-    bottom: '' + bottom + 'px;'
+    bottom: bottom + 'rpx;'
   })
   // console.log('get data', JSON.stringify(ins.selectComponent('.movable')[0].getData()))
   // console.log('get data set', JSON.stringify(ins.selectComponent('.movable')[0].getDataset()))
@@ -40,28 +50,31 @@ function touchmove(event, ins) {
 }
 
 function touchend(event, ins) {
+  // if (!startedByTouch) return;
   var touch = event.touches[0] || event.changedTouches[0]
   var pageY = touch.pageY
-  var bottom = -(pageY - startY) + lastY
-  var delta = pageY - startY;
+  var delta = pageY - startY
+  var bottom = lastBottom - delta * config.px2rpx
   // 默认不动
-  var nextStage = config.currentStage;
+  var nextStage = config.currentStage
+  if (isLimitByMaxStage(bottom)) {
+    lastBottom = parseInt(config.stages[config.stages.length - 1])
+    config.currentStage = config.stages.length - 1
+    return;
+  }
   // 下
   if (delta > 50) {
-    nextStage = (config.currentStage - 1 + config.stages.length) % config.stages.length;
+    nextStage = (config.currentStage - 1 + config.stages.length) % config.stages.length
   }
   // 上
-  else if (delta < -50) nextStage = (config.currentStage + 1) % config.stages.length;
-  lastY = config.stages[nextStage];
-  config.nextStage = nextStage;
-  console.log('delta', delta, config.currentStage, nextStage, config.stages[nextStage])
-  // console.log('idff', pageX - context.startX, left, top)
-  targetComponent = ins.selectComponent('.stage-panel');
-  onTransition = true;
+  else if (delta < -50) nextStage = (Math.min(config.currentStage + 1, config.stages.length - 1)) % config.stages.length
+  lastBottom = parseInt(config.stages[nextStage])
+  config.nextStage = nextStage
+  // console.log('delta', delta, config.currentStage, nextStage, config.stages[nextStage])
+  // onTransition = true;
   targetComponent.setStyle({
-    // left: left + 'px',
-    transition: 'bottom 1s ease 0s',
-    bottom: lastY
+    transition: 'bottom ' + config.duration + ' ' + config.timingFunction + ' 0s',
+    bottom: lastBottom + 'rpx',
   })
   // wx.setTimeout(function() {
   //   stagePanel.setStyle({
@@ -74,55 +87,84 @@ function touchend(event, ins) {
     target: event.target,
     changedTouches: event.changedTouches,
     complete: function(res) {
-      console.log('args', res);
+      console.log('args', res)
     }
   })
 }
 
+function toStage(stage, duration, timingFunction) {
+  var bottom = config.stages[stage]
+  // console.log('toStage', 'stage=', stage, 'bottom=', bottom)
+  targetComponent.setStyle({
+    // left: left + 'px',
+    transition: 'bottom ' + (duration || config.duration) + ' ' + (timingFunction || config.timingFunction) + ' 0s',
+    bottom: bottom
+  });
+  onTranend = function() {
+    eventChange({ type: 'stageChanged' }, null, null, null);
+  }
+  // onTransition = true;
+  // startedByTouch = false;
+}
+
 function eventChange(dataEvent, oldDataEvent, ownerInstance, instance) {
-  console.log('eventChange observer', [dataEvent, oldDataEvent, ownerInstance, instance].map(function(e, i) { return i + ":" + JSON.stringify(e) }));
+  // console.log('eventChange-----')
+  // console.log([dataEvent, oldDataEvent, ownerInstance, instance]
+  // .map(function(e, i) {
+  //   return ['dataEvent', 'oldDataEvent', 'ownerInstance', 'instance'][i] +
+  //     ":" + JSON.stringify(e)
+  // }).join('\n'))
   switch (dataEvent.type) {
     case 'init':
       config = {
         px2rpx: dataEvent.px2rpx || 2,
         stages: dataEvent.stages || [],
-        currentStage: dataEvent.currentStage || -1,
+        currentStage: dataEvent.currentStage === undefined ? -1 : dataEvent.currentStage,
         nextStage: -1,
-      };
-      updateStageToY();
-      console.log('init lastY', lastY)
-      // console.log(dataEvent.stages);
-      // console.log(dataEvent.currentStage);
+        selector: dataEvent.selector,
+        duration: dataEvent.duration === undefined ? config.duration : dataEvent.duration,
+        timingFunction: dataEvent.timingFunction === undefined ? config.timingFunction : dataEvent.timingFunction,
+        limitMaxStage: dataEvent.limitMaxStage === undefined ? config.limitMaxStage : dataEvent.limitMaxStage,
+      }
+      targetComponent = ownerInstance.selectComponent(config.selector)
+      updateCurrentStageToLastBottom()
+      // console.log('init lastBottom', 'config.currentStage=', config.currentStage, 'lastBottom=', lastBottom)
+      break;
+    case 'toStage':
+      config.nextStage = dataEvent.nextStage
+      toStage(config.nextStage, dataEvent.duration || config.duration, dataEvent.timingFunction || config.timingFunction)
       break;
     case 'beforeStageChanged':
-      config.nextStage = dataEvent.nextStage;
+      config.nextStage = dataEvent.nextStage
       break;
     case 'stageChanged':
       // 基本不考虑外部触发，通过transitionend，自己捕获更新
-      config.currentStage = config.nextStage;
-      config.nextStage = 0;
-      updateStageToY();
+      config.currentStage = config.nextStage
+      config.nextStage = -1
+      updateCurrentStageToLastBottom()
       break;
     default:
-      console.log('未捕获事件');
+      console.log('未捕获事件')
       break;
   }
 }
 
-function updateStageToY() {
+function updateCurrentStageToLastBottom() {
   if (config.currentStage < 0) return;
   if (!config.stages || !config.stages.length) return;
-  lastY = parseInt(config.stages[config.currentStage]) / config.px2rpx;
-  console.log('updateStageToY', 'currentStage= ' + config.currentStage, 'lastY=' + lastY);
+  lastBottom = parseInt(config.stages[config.currentStage])
+  // console.log('updateCurrentStageToLastBottom', 'currentStage= ' + config.currentStage, 'lastBottom=' + lastBottom)
 }
 
 function transitionend(e) {
-  console.log('transitionend', JSON.stringify(e));
-  onTransition = false;
-  eventChange({ type: 'stageChanged' }, null, null, null);
+  // console.log('transitionend', JSON.stringify(e))
+  // onTransition = false;
+  // startedByTouch = false;
+  if (onTranend) onTranend()
+  else eventChange({ type: 'stageChanged' }, null, null, null)
   // if (targetComponent) {
   //   targetComponent.setStyle({
-  //     bottom: lastY,
+  //     bottom: lastBottom,
   //   })
   //   targetComponent = null;
   // }
